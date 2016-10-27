@@ -16,8 +16,11 @@ You can then point your browser to [http://localhost](http://localhost) and you 
 
 ### Basic usage
 
-Just post some JSON to your <hostname>/url (for me this is `http://localhost/url`). For example, below I post ```JSON
-{"url": "hello/world!"}``` to `http://localhost/url`:
+Just post some JSON to your <hostname>/url (for me this is `http://localhost/url`). For example, below I post 
+```JSON
+{"url": "hello/world!"}
+```
+to `http://localhost/url`:
 
 ```HTTP
 POST /url HTTP/1.1
