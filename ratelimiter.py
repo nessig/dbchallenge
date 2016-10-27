@@ -1,48 +1,167 @@
-# Most of this code is from:
-# https://github.com/projectweekend/Falcon-PostgreSQL-API-Seed/blob/master/app/middleware/rate_limit.py
-from time import time
-
 import cherrypy
-import redis
+from datetime import datetime, timedelta
 
+'''
+Rate Limiting Tool
 
-class RateLimiter(object):
-    def __init__(self, limit=100, window=60):
-        self.limit = limit
-        self.window = window
-        self.redis = redis.StrictRedis(host='redis', port=6379)
+Author: Joshua Roesslein <jroesslein at gmail.com>
 
-    def process_request(self, req, res):
-        requester = cherrypy.request.headers['REMOTE_ADDR']
-        requester = req.env['REMOTE_ADDR']
+Provides a tool that allows the developer to apply rate limits
+for their endpoints. If the user exceeds their limit the tool will block
+further requests on the handler until the reset time passes.
 
-        # un-comment if you want to ignore calls from localhost
-        # if requester == '127.0.0.1':
-        #     return
+'''
 
-        # key = "{0}: {1}".format(requester, req.path)
-        key = "{0}: {1}".format(requester, cherrypy.request.path_info)
-        print('Key: {0}'.format(key))
+'''
+Rate Limit Datastore
 
-        try:
-            remaining = self.limit - int(self.redis.get(key))
-        except (ValueError, TypeError):
-            remaining = self.limit
-            self.redis.set(key, 0)
+Provides persistent storage for the rate limit tool.
+This default implementation uses the sqlite3 module.
+To use your own data backend implement this class
+and pass it into the tool during use.
 
-        expires_in = self.redis.ttl(key)
+YOU MUST first execute this script (python ratelimit.py) to install the sqlite3
+database tables before running the server. To flush the datastore, delete
+the DB file (default: .ratelimitdata.sqlite3) and rerun the script.
 
-        if expires_in == -1:
-            self.redis.expire(key, self.window)
-            expires_in = self.window
+'''
+import sqlite3
+class RateLimitDatastore(object):
+    def _conn(self):
+        return sqlite3.connect('.ratelimitdata.sqlite3',
+                               detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
 
-        cherrypy.request.headers.update({
-            'X-RateLimit-Remaining: ': str(remaining - 1),
-            'X-RateLimit-Limit: ': str(self.limit),
-            'X-RateLimit-Reset: ': str(time() + expires_in)
-        })
+    def install_tables(self):
+        conn = self._conn()
+        conn.execute('''CREATE TABLE IF NOT EXISTS trackers(
+                    token TEXT, endpoint TEXT, hit_count INTEGER, reset_time TIMESTAMP)''')
+        conn.close()
 
-        if remaining > 0:
-            self.redis.incr(key, 1)
+    def get(self, token, endpoint):
+        conn = self._conn()
+        tracker = conn.execute('SELECT * FROM trackers WHERE token=? AND endpoint=?',
+                               (token, endpoint)).fetchone()
+        conn.close()
+        if tracker is not None:
+            return tracker[2:4]
         else:
-            raise cherrypy.HTTPError(status=429, 'Blocked: Too many requests!')
+            return None
+
+    def put(self, token, endpoint, tracker):
+        conn = self._conn()
+        conn.execute('INSERT INTO trackers VALUES(?,?,?,?)',
+                     (token, endpoint, tracker[0], tracker[1]))
+        conn.commit()
+        conn.close()
+
+    def update(self, token, endpoint, tracker):
+        conn = self._conn()
+        values = (tracker[0],)
+        set_query = 'hit_count=?'
+        if tracker[1] is not None:
+            values += (tracker[1],)
+            set_query += ', reset_time=?'
+            values += (token, endpoint,)
+            query = 'UPDATE trackers SET %s WHERE token=? AND endpoint=?' % set_query
+            conn.execute(query, values)
+            conn.commit()
+            conn.close()
+
+if __name__ == '__main__':
+    '''Install database tables'''
+    print 'Installing tables...'
+    RateLimitDatastore().install_tables()
+    print 'Done.'
+
+class RateLimitTool(cherrypy.Tool):
+    def __init__(self, priority=60):
+        self._name = None
+        self._priority = priority
+        self.callable = None
+        self._setargs()
+
+    def _check_limit(self, quotas, counter, datastore, rate_exceed_code=400):
+        token = cherrypy.request.login
+        if token is None:
+            token = cherrypy.request.remote.ip
+
+        # Find quota for the requesting user
+        quota = None
+        for q in quotas:
+            allowed = q.get('allowed', None)
+            if allowed is None or allowed.count(token):
+                quota = q
+                break
+        if quota is None:
+            # User not allowed to make this request!
+            raise cherrypy.HTTPError(403)
+
+        # Get limit
+        limit = quota.get('limit', None)
+        if limit is None:
+            return
+
+        # Get tracker
+        if counter.get('global', False):
+            endpoint = 'global'
+        else:
+            endpoint = cherrypy.request.path_info
+            tracker = datastore.get(token, endpoint)
+
+        # Get reset delay from counter (if not specified will be set to zero)
+        delay = counter.get('reset_delay', 0)
+        if isinstance(delay, dict):
+            delay = delay.get(qid, delay.get('default', 0))
+
+        # Create new tracker if reset time has been reached or tracker not found
+        if tracker is None or tracker[1] <= datetime.utcnow():
+            delay = counter.get('reset_delay', 0)
+            if isinstance(delay, dict):
+                delay = delay.get(qid, delay.get('default', 0))
+                new_tracker = (0, datetime.utcnow() + timedelta(seconds=delay))
+                if tracker is None:
+                    datastore.put(token, endpoint, new_tracker)
+                else:
+                    datastore.update(token, endpoint, new_tracker)
+                tracker = new_tracker
+
+        # Verify user has not exceeded rate limit
+        limit = quota.get('limit', None)
+        if limit is not None and tracker[0] >= limit:
+            raise cherrypy.HTTPError(400)
+
+        # Store data needed for charge hook in request
+        cherrypy.request.ratelimit_tracker = tracker
+        cherrypy.request.ratelimit_token = token
+        cherrypy.request.ratelimit_endpoint = endpoint
+
+    def _charge_hit(self, datastore):
+        # Get tracker. If not set, this request is not limited
+        try:
+            tracker = cherrypy.request.ratelimit_tracker
+        except:
+            return
+
+        # Only charge a hit if a non 500 status is returned
+        if int(cherrypy.response.status.split()[0]) < 500:
+            datastore.update(cherrypy.request.ratelimit_token,
+                             cherrypy.request.ratelimit_endpoint, (tracker[0] + 1, None))
+
+    def _setup(self):
+        '''Hook into request'''
+        conf = self._merged_args()
+        p = conf.pop('priority', self._priority)
+        if 'datastore' not in conf:
+            conf['datastore'] = RateLimitDatastore()
+
+        # Check hit count hook
+        cherrypy.request.hooks.attach('before_handler', self._check_limit,
+                                      priority=p, **conf)
+
+        # Charge hit hook
+        conf.pop('quotas', None)
+        conf.pop('counter', None)
+        cherrypy.request.hooks.attach('on_end_request', self._charge_hit,
+                                      priority=p, **conf)
+
+
