@@ -1,8 +1,23 @@
 ## Simple url shortener web service.
+
+Run it
+======
+
+Clone and then cd into the repo, then run and build it using docker-compose:
+
+```
+$ docker-compose up --build
+```
+
+You can then point your browser to [http://localhost](http://localhost) and you should see something like this:
+
+![alt text](siteimage.png "Site image.")
+
+
 ### Basic usage
 
-Just post some JSON to your <hostname>/url (for me this is [http://localhost/url](http://localhost/url)). For example, below I post ```JSON
-{"url": "hello/world!"}``` to [http://localhost/url](http://localhost/url):
+Just post some JSON to your <hostname>/url (for me this is `http://localhost/url`). For example, below I post ```JSON
+{"url": "hello/world!"}``` to `http://localhost/url`:
 
 ```HTTP
 POST /url HTTP/1.1
@@ -92,23 +107,3 @@ Server: CherryPy/8.1.2
 ```
 
 Definately consider taking the traceback for production...
-
-A very basic web application using the
-[CherryPy](http://cherrypy.org/) framework and Python 3.5.
-
-The image is quite light thanks to
-[Alpine Linux](https://hub.docker.com/r/frolvlad/alpine-python3/).
-
-
-Run it
-======
-
-Clone and then cd into the repo, then run and build it using docker-compose:
-
-```
-$ docker-compose up --build
-```
-
-You can then point your browser to `http://locahost` and you should see something like this:
-
-![alt text](siteimage.png "Site image.")
