@@ -61,7 +61,7 @@ Server: CherryPy/8.1.2
 
 It also has a JSON error handler:
 
-```
+```HTTP
 GET /url/doesnt/exist! HTTP/1.1
 Accept: */*
 Accept-Encoding: gzip, deflate
@@ -108,4 +108,4 @@ $ docker-compose up --build
 
 You can then point your browser to `http://locahost` and you should see something like this:
 
-![alt text](https://github.com/nessig/dgchallenge/raw/master/siteimage.png "Site image.")
+![alt text](siteimage.png "Site image.")
