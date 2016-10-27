@@ -32,9 +32,6 @@ class Root(object):
         if url is None:
             # sanitize the url input here
             raise cherrypy.HTTPError(404, "Not Found: the url {} was not found".format(url))
-        print('url: ', url)
-        print('urlcode: ', urlcode)
-
         raise cherrypy.HTTPRedirect(url)
 
 
@@ -49,11 +46,8 @@ class UrlGeneratorWebService(object):
         if url is None:
             # sanitize the url input here
             raise cherrypy.HTTPError(404, "Not Found: the url {} was not found".format(url))
-        print('url: ', url)
-        print('urlcode: ', urlcode)
-
         prefix = cherrypy.config.get('api-url-prefix')
-        return {'urlcode': prefix + urlcode, 'url': url}
+        return {'urlcode': urlcode, 'url': url, 'urlcode-link': prefix + urlcode}
 
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
@@ -63,10 +57,10 @@ class UrlGeneratorWebService(object):
             raise cherrypy.HTTPError(400, 'Bad Request: missing JSON data in request')
         url = data['url']
         urlcode = cherrypy.engine.publish('db-shorten', url)[0]
-        print('url: ', url)
-        print('urlcode: ', urlcode)
         prefix = cherrypy.config.get('api-url-prefix')
-        return {'urlcode': prefix + urlcode, 'url': url}
+        # prefix = cherrypy.config.get('server.socket_host') + cherrypy.config.get('server.socket_port') + cherrypy.config.get('api-url-prefix')
+        # prefixapi = cherrypy.config.get('server.socket_host') + cherrypy.config.get('server.socket_port') + '/url/'
+        return {'urlcode': urlcode, 'url': url, 'urlcode-link': prefix + urlcode}
 
 cherrypy.config.update({
     'server.socket_host': '0.0.0.0', #if you are running this on ec2, uncomment!

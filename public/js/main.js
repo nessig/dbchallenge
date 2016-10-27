@@ -15,8 +15,8 @@ $(document)
             $("#the-string")
               .show();
             $('#shorturl-output a')
-              .attr("href", data['urlcode'])
-              .html(data['urlcode']);
+              .attr("href", data['urlcode-link'])
+              .html(data['urlcode-link']);
           },
           dataType: 'json'
         });
