@@ -8,35 +8,36 @@ POST /url HTTP/1.1
 Accept: application/json, */*
 Accept-Encoding: gzip, deflate
 Connection: keep-alive
-Content-Length: 23
+Content-Length: 22
 Content-Type: application/json
 Host: localhost
 User-Agent: HTTPie/0.9.6
 
 {
-    "url": "hello/world!"
+    "url": "helloworld!"
 }
 
 HTTP/1.1 200 OK
 Allow: GET, HEAD, POST
-Content-Length: 67
+Content-Length: 123
 Content-Type: application/json
-Date: Thu, 27 Oct 2016 13:55:28 GMT
+Date: Thu, 27 Oct 2016 19:03:42 GMT
 Server: CherryPy/8.1.2
 
 {
-    "url": "hello/world!",
-    "urlcode": "3",
-    "urlcode-link": "/short/3"
+    "url": "helloworld!",
+    "urlcode": "7",
+    "urlcode-api": "http://localhost/url/7",
+    "urlcode-link": "http://localhost/short/7"
 }
 ```
 
-This returns the original url you sent, a urlcode that corresponds to this url (for api usage), and finally a shortened url for sharing with others (urlcode-link).
+This returns the original url you sent, a urlcode and urlcode-api that corresponds to this url and its address (for api usage), and finally a shortened url for sharing with others (urlcode-link).
 
-Then we can get the resource at `locahost/url/3`:
+Then we can get the resource by following the "urlcode-api" link in the response `http://localhost/url/7`:
 
 ```HTTP
-GET /url/3 HTTP/1.1
+GET /url/7 HTTP/1.1
 Accept: */*
 Accept-Encoding: gzip, deflate
 Connection: keep-alive
@@ -47,15 +48,16 @@ User-Agent: HTTPie/0.9.6
 
 HTTP/1.1 200 OK
 Allow: GET, HEAD, POST
-Content-Length: 67
+Content-Length: 123
 Content-Type: application/json
-Date: Thu, 27 Oct 2016 13:56:18 GMT
+Date: Thu, 27 Oct 2016 19:04:37 GMT
 Server: CherryPy/8.1.2
 
 {
-    "url": "hello/world!",
-    "urlcode": "3",
-    "urlcode-link": "/short/3"
+    "url": "helloworld!",
+    "urlcode": "7",
+    "urlcode-api": "http://localhost/url/7",
+    "urlcode-link": "http://localhost/short/7"
 }
 ```
 
