@@ -46,8 +46,14 @@ class UrlGeneratorWebService(object):
         if url is None:
             # sanitize the url input here
             raise cherrypy.HTTPError(404, "Not Found: the url {} was not found".format(url))
-        prefix = cherrypy.config.get('api-url-prefix')
-        return {'urlcode': urlcode, 'url': url, 'urlcode-link': prefix + urlcode}
+        out = {
+            'urlcode': urlcode,
+            'url': url,
+            'urlcode-api': cherrypy.request.base + cherrypy.config.get('api-prefix') + urlcode,
+            'urlcode-link': cherrypy.request.base + cherrypy.config.get('url-prefix') + urlcode
+        }
+        return out
+
 
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
@@ -57,17 +63,21 @@ class UrlGeneratorWebService(object):
             raise cherrypy.HTTPError(400, 'Bad Request: missing JSON data in request')
         url = data['url']
         urlcode = cherrypy.engine.publish('db-shorten', url)[0]
-        prefix = cherrypy.config.get('api-url-prefix')
-        # prefix = cherrypy.config.get('server.socket_host') + cherrypy.config.get('server.socket_port') + cherrypy.config.get('api-url-prefix')
-        # prefixapi = cherrypy.config.get('server.socket_host') + cherrypy.config.get('server.socket_port') + '/url/'
-        return {'urlcode': urlcode, 'url': url, 'urlcode-link': prefix + urlcode}
+        out = {
+            'urlcode': urlcode,
+            'url': url,
+            'urlcode-api': cherrypy.request.base + cherrypy.config.get('api-prefix') + urlcode,
+            'urlcode-link': cherrypy.request.base + cherrypy.config.get('url-prefix') + urlcode
+        }
+        return out
 
 cherrypy.config.update({
     'server.socket_host': '0.0.0.0', #if you are running this on ec2, uncomment!
     'server.socket_port': 80,      #so you can access by host address
     'server.thread_pool': 10, # 10 is default
     'tools.trailing_slash.on': False, # True is default
-    'api-url-prefix': '/short/'
+    'url-prefix': '/short/',
+    'api-prefix': '/url/'
 })
 
 if __name__ == '__main__':
