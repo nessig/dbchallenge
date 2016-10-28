@@ -79,8 +79,8 @@ class RateLimiter(cherrypy.Tool):
         requester = cherrypy.request.remote
 
         # un-comment if you want to ignore calls from localhost
-        if requester == '127.0.0.1':
-            return
+        # if requester == '127.0.0.1':
+        #     return
 
         # key = "{0}: {1}".format(requester, req.path)
         key = "{0}: {1}".format(requester, cherrypy.request.path_info)
