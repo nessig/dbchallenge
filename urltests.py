@@ -16,7 +16,7 @@ def test_rate_limit_403():
         conn = http.client.HTTPConnection(url.netloc)
         conn.request("GET", url.path)
         res = conn.getresponse()
-        res.status
+        print(res.status)
 
 
 

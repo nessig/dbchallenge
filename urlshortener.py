@@ -107,7 +107,7 @@ class RateLimiter(cherrypy.Tool):
         if remaining > 0:
             self.redis.incr(key, 1)
         else:
-            raise cherrypy.HTTPError(403, 'Blocked: Too many requests!')
+            raise cherrypy.HTTPError(429, 'Blocked: Too many requests!')
 
 
 class DatabasePlugin(plugins.SimplePlugin):
