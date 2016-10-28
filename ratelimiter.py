@@ -69,9 +69,9 @@ class RateLimitDatastore(object):
 
 if __name__ == '__main__':
     '''Install database tables'''
-    print 'Installing tables...'
+    print('Installing tables...')
     RateLimitDatastore().install_tables()
-    print 'Done.'
+    print('Done.')
 
 class RateLimitTool(cherrypy.Tool):
     def __init__(self, priority=60):

@@ -2,12 +2,15 @@ import os, os.path
 import json
 import cherrypy
 import urlshortener
+# from ratelimiter import RateLimitTool
 
 """
 TODO:
 Version api
-Fix get response
 """
+
+# rate limit to 2 requests per second
+cherrypy.tools.ratelimit = urlshortener.RateLimiter(limit=2, window=1)
 
 def error_page_default(status, message, traceback, version):
     """Nice JSON error handler"""
@@ -39,6 +42,7 @@ class Root(object):
 class UrlGeneratorWebService(object):
     """Url shorter web service"""
 
+    @cherrypy.tools.ratelimit()
     @cherrypy.tools.json_out()
     @cherrypy.popargs('urlcode')
     def GET(self, urlcode=None):
@@ -54,7 +58,7 @@ class UrlGeneratorWebService(object):
         }
         return out
 
-
+    @cherrypy.tools.ratelimit()
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
     def POST(self):
@@ -73,15 +77,17 @@ class UrlGeneratorWebService(object):
 
 cherrypy.config.update({
     'server.socket_host': '0.0.0.0', #if you are running this on ec2, uncomment!
-    'server.socket_port': 80,      #so you can access by host address
+    # 'server.socket_port': 80,      #so you can access by host address
+    'server.socket_port': 8080,      #so you can access by host address
     'server.thread_pool': 10, # 10 is default
     'tools.trailing_slash.on': False, # True is default
     'url-prefix': '/short/',
-    'api-prefix': '/url/'
+    'api-prefix': '/url/',
 })
 
 if __name__ == '__main__':
     conf = {
+
         '/': {
             'tools.staticdir.root': os.path.abspath(os.getcwd()),
         },
@@ -97,7 +103,10 @@ if __name__ == '__main__':
         }
     }
 
+    # cherrypy.tools.ratelimit = cherrypy.Tool('before_finalize', )
+
     urlshortener.DatabasePlugin(cherrypy.engine, urlshortener.ShortenUrlService).subscribe()
+    # cherrypy.tools.ratelimit = RateLimitTool()
 
     webapp = Root()
     webapp.url = UrlGeneratorWebService()
