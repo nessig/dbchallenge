@@ -71,7 +71,7 @@ class RateLimiter(cherrypy.Tool):
         cherrypy.log("Creating rate limiter with limit={} and window={}".format(limit, window))
         self.limit = limit
         self.window = window
-        self.redis = StrictRedis(host='localhost', port=6379)
+        self.redis = StrictRedis(host='redis', port=6379)
 
     def process_request(self):
         print(cherrypy.request)

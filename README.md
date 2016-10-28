@@ -110,3 +110,9 @@ Server: CherryPy/8.1.2
 ```
 
 Definately consider taking the traceback for production...
+
+There's also some basic rate limiting functionality. Right now it's set to 2 requests per second from the same remote ip address. For example, below I send 5 requests over a short period of time:
+```BASH
+for i in `seq 5`; do curl -s -D - http://localhost/url/1 -o /dev/null ; done
+```
+This should output 2 `200 OK`s and 3 `429 Too Many Requests`.

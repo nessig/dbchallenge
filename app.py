@@ -83,8 +83,8 @@ class UrlGeneratorWebService(object):
 
 cherrypy.config.update({
     'server.socket_host': '0.0.0.0', #if you are running this on ec2, uncomment!
-    # 'server.socket_port': 80,      #so you can access by host address
-    'server.socket_port': 8080,      #so you can access by host address
+    'server.socket_port': 80,      #so you can access by host address
+    # 'server.socket_port': 8080,      #so you can access by host address
     'server.thread_pool': 10, # 10 is default
     'tools.trailing_slash.on': False, # True is default
     'url-prefix': '/short/',
