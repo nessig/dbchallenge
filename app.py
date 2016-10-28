@@ -47,10 +47,10 @@ class UrlGeneratorWebService(object):
     @cherrypy.tools.json_out()
     @cherrypy.popargs('urlcode')
     def GET(self, urlcode=None):
-        print('Headers: ',
-            cherrypy.request.headers['X-RateLimit-Remaining: '],
-              cherrypy.request.headers['X-RateLimit-Limit: '],
-              cherrypy.request.headers['X-RateLimit-Reset: '])
+        # print('Headers: ',
+        #     cherrypy.response.headers['X-RateLimit-Remaining: '],
+        #       cherrypy.response.headers['X-RateLimit-Limit: '],
+        #       cherrypy.response.headers['X-RateLimit-Reset: '])
 
         url = cherrypy.engine.publish('db-get', urlcode)[0]
         if url is None:

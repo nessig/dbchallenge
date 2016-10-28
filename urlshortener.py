@@ -76,13 +76,13 @@ class RateLimiter(cherrypy.Tool):
     def process_request(self):
         print(cherrypy.request)
         print(cherrypy.request.remote)
-        requester = cherrypy.request.remote
+        requester = cherrypy.request.remote.ip
+        print("remote:", requester)
 
         # un-comment if you want to ignore calls from localhost
         # if requester == '127.0.0.1':
         #     return
 
-        # key = "{0}: {1}".format(requester, req.path)
         key = "{0}: {1}".format(requester, cherrypy.request.path_info)
         print('Key: {0}'.format(key))
 
@@ -98,16 +98,11 @@ class RateLimiter(cherrypy.Tool):
             self.redis.expire(key, self.window)
             expires_in = self.window
 
-        cherrypy.request.headers['X-RateLimit-Remaining: '] = str(remaining - 1)
-        cherrypy.request.headers['X-RateLimit-Limit: '] = str(self.limit)
-        cherrypy.request.headers['X-RateLimit-Reset: '] = str(time.time() + expires_in)
-        # cherrypy.log(cherrypy.request.headers)
-
-        # cherrypy.request.headers.update({
-        #     'X-RateLimit-Remaining: ': str(remaining - 1),
-        #     'X-RateLimit-Limit: ': str(self.limit),
-        #     'X-RateLimit-Reset: ': str(time.time() + expires_in)
-        # })
+        cherrypy.request.headers.update({
+            'X-RateLimit-Remaining: ': str(remaining - 1),
+            'X-RateLimit-Limit: ': str(self.limit),
+            'X-RateLimit-Reset: ': str(time.time() + expires_in)
+        })
 
         if remaining > 0:
             self.redis.incr(key, 1)
